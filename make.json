@@ -1,0 +1,87 @@
+{
+    "name": "LeadFlow Email Lead Ingestion",
+    "flow": [
+      {
+        "id": 1,
+        "module": "google-email:triggerWatchNewEmails",
+        "version": 4,
+        "parameters": {
+          "__IMTCONN__": 5594358,
+          "folder": "INBOX",
+          "format": "full",
+          "criteria": "all",
+          "limit": 5,
+          "filterType": "simpleSearch",
+          "includeWords": "Lead",
+          "excludeWords": "",
+          "markSeen": false,
+          "hasAttachment": false
+        }
+      },
+      {
+        "id": 2,
+        "module": "openai-gpt-3:askAnything",
+        "version": 1,
+        "mapper": {
+          "model": "gpt-5-mini",
+          "textPrompt": "Extract lead information from the email below.\n\nReturn ONLY valid JSON.\n\n{\n\"name\":\"\",\n\"email\":\"\",\n\"phone\":\"\",\n\"company\":\"\",\n\"city\":\"\",\n\"product_interest\":\"\",\n\"message\":\"\",\n\"source\":\"\",\n\"subject\":\"\"\n}\n\nRules:\n- If a value is missing return \"\"\n- Detect if the email is from 3M, Website, IndiaMART or Other\n- Do not include explanations or markdown\n\nSubject:\n{{1.subject}}\n\nSender:\n{{1.fromEmail}}\n\nEmail Body:\n{{1.fullTextBody}}\n\nSnippet:\n{{1.snippet}}"
+        }
+      },
+      {
+        "id": 3,
+        "module": "json:ParseJSON",
+        "version": 1,
+        "parameters": {
+          "type": {
+            "name": "LeadData",
+            "spec": [
+              { "name": "name", "type": "text" },
+              { "name": "email", "type": "text" },
+              { "name": "phone", "type": "text" },
+              { "name": "company", "type": "text" },
+              { "name": "city", "type": "text" },
+              { "name": "product_interest", "type": "text" },
+              { "name": "message", "type": "text" },
+              { "name": "source", "type": "text" },
+              { "name": "subject", "type": "text" }
+            ]
+          }
+        },
+        "mapper": {
+          "json": "{{2.result}}"
+        }
+      },
+      {
+        "id": 4,
+        "module": "http:MakeRequest",
+        "version": 4,
+        "parameters": {
+          "authenticationType": "noAuth"
+        },
+        "mapper": {
+          "url": "https://YOUR-NGROK-URL/api/ingest/lead",
+          "method": "post",
+          "contentType": "json",
+          "body": {
+            "name": "{{3.name}}",
+            "email": "{{3.email}}",
+            "phone": "{{3.phone}}",
+            "company": "{{3.company}}",
+            "location": "{{3.city}}",
+            "product_interest": "{{3.product_interest}}",
+            "notes": "{{3.message}}",
+            "channel": "{{3.source}}",
+            "stage": "New"
+          },
+          "headers": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ],
+          "parseResponse": true,
+          "stopOnHttpError": true
+        }
+      }
+    ]
+  }
