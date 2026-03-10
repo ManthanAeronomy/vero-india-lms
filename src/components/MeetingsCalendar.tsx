@@ -180,7 +180,11 @@ export function MeetingsCalendar() {
                   </div>
                   <div className="mt-1 flex items-center gap-1.5 text-[12px] text-stone-600">
                     <MapPin className="h-3.5 w-3.5 text-stone-400" />
-                    <span>{lead.meetingLocation || 'Location not added'}</span>
+                    <span>
+                      {lead.meetingSiteVisit?.address
+                        ? `${lead.meetingSiteVisit.address}${lead.meetingSiteVisit.postalCode ? ` (${lead.meetingSiteVisit.postalCode})` : ''}`
+                        : lead.meetingLocation || 'Location not added'}
+                    </span>
                   </div>
                 </div>
               ))

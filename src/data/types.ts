@@ -25,6 +25,10 @@ export interface Lead {
   lastActivity: string;
   meetingAt: string;
   meetingLocation: string;
+  meetingSiteVisit?: {
+    address: string;
+    postalCode: string;
+  };
   notes: string;
   location: string;
   comments: LeadComment[];

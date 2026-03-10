@@ -1,8 +1,8 @@
-import { LayoutDashboard, Users, GitBranch, CalendarDays, BarChart3, UserCheck, Zap, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Users, GitBranch, CalendarDays, BarChart3, UserCheck, Zap, ChevronDown, Map } from 'lucide-react';
 import { cn } from '@/utils/cn';
 import type { AuthUser } from '@/api/auth';
 
-type Page = 'dashboard' | 'leads' | 'pipeline' | 'calendar' | 'reports' | 'assignments' | 'settings';
+type Page = 'dashboard' | 'leads' | 'pipeline' | 'calendar' | 'map' | 'reports' | 'assignments' | 'settings';
 
 interface SidebarProps {
   currentPage: Page;
@@ -16,6 +16,7 @@ const navItems = [
   { id: 'leads' as Page, label: 'Leads', icon: Users },
   { id: 'pipeline' as Page, label: 'Deal Pipeline', icon: GitBranch },
   { id: 'calendar' as Page, label: 'Calendar', icon: CalendarDays },
+  { id: 'map' as Page, label: 'Bengaluru Map', icon: Map },
   { id: 'reports' as Page, label: 'Reports', icon: BarChart3 },
   { id: 'assignments' as Page, label: 'Assignments', icon: UserCheck },
 ];
@@ -29,7 +30,7 @@ export function Sidebar({ currentPage, onNavigate, user, onLogout }: SidebarProp
     .toUpperCase();
 
   const visibleNavItems = navItems
-    .filter((item) => user.role === 'admin' || ['dashboard', 'leads', 'calendar', 'reports'].includes(item.id))
+    .filter((item) => user.role === 'admin' || ['dashboard', 'leads', 'calendar', 'map', 'reports'].includes(item.id))
     .map((item) => {
       if (user.role === 'team_member' && item.id === 'dashboard') {
         return { ...item, label: 'Home' }

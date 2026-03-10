@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AuthScreen } from '@/components/AuthScreen';
 import { OnboardingScreen } from '@/components/OnboardingScreen';
 import { LeadsProvider } from '@/contexts/LeadsContext';
@@ -6,20 +6,24 @@ import { ExecutivesProvider } from '@/contexts/ExecutivesContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLeads } from '@/contexts/LeadsContext';
 import { useExecutives } from '@/contexts/ExecutivesContext';
+import { useNotifications } from '@/contexts/NotificationsContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/components/Dashboard';
 import { TeamMemberHome } from '@/components/TeamMemberHome';
 import { LeadsTable } from '@/components/LeadsTable';
 import { DealPipeline } from '@/components/DealPipeline';
 import { MeetingsCalendar } from '@/components/MeetingsCalendar';
+import { BengaluruMap } from '@/components/BengaluruMap';
 import { Reports } from '@/components/Reports';
 import { Assignments } from '@/components/Assignments';
 import { SettingsPage } from '@/components/SettingsPage';
+import { NotificationsPanel } from '@/components/NotificationsPanel';
+import { NotificationsProvider } from '@/contexts/NotificationsContext';
 import { Bell, Search, Command } from 'lucide-react';
 import type { AuthUser } from '@/api/auth';
 import { cn } from '@/utils/cn';
 
-type Page = 'dashboard' | 'leads' | 'pipeline' | 'calendar' | 'reports' | 'assignments' | 'settings';
+type Page = 'dashboard' | 'leads' | 'pipeline' | 'calendar' | 'map' | 'reports' | 'assignments' | 'settings';
 
 export function App() {
   const { user, loading, logout } = useAuth();
@@ -45,7 +49,9 @@ export function App() {
   return (
     <ExecutivesProvider>
       <LeadsProvider>
-        <AuthenticatedWorkspace user={user} onLogout={logout} />
+        <NotificationsProvider>
+          <AuthenticatedWorkspace user={user} onLogout={logout} />
+        </NotificationsProvider>
       </LeadsProvider>
     </ExecutivesProvider>
   );
@@ -56,6 +62,7 @@ const pageLabels: Record<Page, string> = {
   leads: 'Leads',
   pipeline: 'Deal Pipeline',
   calendar: 'Calendar',
+  map: 'Bengaluru Map',
   reports: 'Reports',
   assignments: 'Assignments',
   settings: 'Settings',
@@ -71,16 +78,19 @@ function getPageLabel(page: Page, user: AuthUser) {
 function AuthenticatedWorkspace({ user, onLogout }: { user: AuthUser; onLogout: () => Promise<void> }) {
   const { leads } = useLeads();
   const { executives } = useExecutives();
+  const { unreadCount } = useNotifications();
   const isTeamMember = user.role === 'team_member';
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [searchQuery, setSearchQuery] = useState('');
   const [leadSearch, setLeadSearch] = useState('');
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const bellRef = useRef<HTMLButtonElement>(null);
 
   const allowedPages = useMemo<Page[]>(
     () =>
       user.role === 'admin'
-        ? ['dashboard', 'leads', 'pipeline', 'calendar', 'reports', 'assignments', 'settings']
-        : ['dashboard', 'leads', 'calendar', 'reports', 'settings'],
+        ? ['dashboard', 'leads', 'pipeline', 'calendar', 'map', 'reports', 'assignments', 'settings']
+        : ['dashboard', 'leads', 'calendar', 'map', 'reports', 'settings'],
     [user.role]
   );
 
@@ -150,6 +160,12 @@ function AuthenticatedWorkspace({ user, onLogout }: { user: AuthUser; onLogout: 
     setLeadSearch(term);
     setCurrentPage('leads');
     clearSearch();
+  }
+
+  function handleNotificationNavigate(page: string, search?: string) {
+    setCurrentPage(page as Page);
+    if (search) setLeadSearch(search);
+    setNotificationsOpen(false);
   }
 
   return (
@@ -280,11 +296,29 @@ function AuthenticatedWorkspace({ user, onLogout }: { user: AuthUser; onLogout: 
             )}
           </div>
 
-          <div className="flex items-center justify-between gap-3 sm:justify-end">
-            <button className="relative rounded-lg p-2 text-stone-400 hover:bg-white hover:text-stone-600 transition-colors">
-              <Bell className="h-4 w-4" />
-              <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-red-400 ring-2 ring-[#fafaf9]" />
-            </button>
+          <div className="relative flex items-center justify-between gap-3 sm:justify-end">
+            <div className="relative">
+              <button
+                ref={bellRef}
+                type="button"
+                onClick={() => setNotificationsOpen((o) => !o)}
+                className="relative rounded-lg p-2 text-stone-400 hover:bg-white hover:text-stone-600 transition-colors"
+              >
+                <Bell className="h-4 w-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute right-1.5 top-1.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white ring-2 ring-[#fafaf9]">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </button>
+              <NotificationsPanel
+                isOpen={notificationsOpen}
+                onClose={() => setNotificationsOpen(false)}
+                anchorRef={bellRef}
+                onNavigate={handleNotificationNavigate}
+                onItemClick={() => setNotificationsOpen(false)}
+              />
+            </div>
             <div className="h-5 w-px bg-stone-200" />
             <button
               type="button"
@@ -310,6 +344,7 @@ function AuthenticatedWorkspace({ user, onLogout }: { user: AuthUser; onLogout: 
           {currentPage === 'leads' && <LeadsTable externalSearch={leadSearch} />}
           {currentPage === 'pipeline' && <DealPipeline />}
           {currentPage === 'calendar' && <MeetingsCalendar />}
+          {currentPage === 'map' && <BengaluruMap />}
           {currentPage === 'reports' && <Reports />}
           {currentPage === 'assignments' && <Assignments />}
           {currentPage === 'settings' && <SettingsPage />}

@@ -144,6 +144,10 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
         assignedTo: fd.get('assignedTo') as string,
         meetingAt: fd.get('meetingAt') ? new Date(fd.get('meetingAt') as string).toISOString() : '',
         meetingLocation: (fd.get('meetingLocation') as string) || '',
+        meetingSiteVisit: {
+          address: (fd.get('meetingSiteVisitAddress') as string) || '',
+          postalCode: (fd.get('meetingSiteVisitPostalCode') as string) || '',
+        },
         notes: (fd.get('notes') as string) || '',
         location: (fd.get('location') as string) || '',
       });
@@ -180,6 +184,10 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
         assignedTo: (fd.get('assignedTo') as string) || '',
         meetingAt: fd.get('meetingAt') ? new Date(fd.get('meetingAt') as string).toISOString() : '',
         meetingLocation: (fd.get('meetingLocation') as string) || '',
+        meetingSiteVisit: {
+          address: (fd.get('meetingSiteVisitAddress') as string) || '',
+          postalCode: (fd.get('meetingSiteVisitPostalCode') as string) || '',
+        },
         notes: (fd.get('notes') as string) || '',
         location: (fd.get('location') as string) || '',
       });
@@ -511,6 +519,19 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
                   <input name="meetingLocation" className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" placeholder="e.g. Office / Google Meet" />
                 </div>
               </div>
+              <div className="rounded-xl border border-stone-200/80 bg-stone-50/50 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500 mb-2">Site Visit / Meeting Location (Bengaluru)</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-medium text-stone-400">Address</label>
+                    <input name="meetingSiteVisitAddress" className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" placeholder="e.g. MG Road, Koramangala" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-stone-400">Postal Code</label>
+                    <input name="meetingSiteVisitPostalCode" className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" placeholder="e.g. 560001" />
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Notes</label>
                 <textarea name="notes" rows={2} className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" />
@@ -627,6 +648,19 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
                   />
                 </div>
               </div>
+              <div className="rounded-xl border border-stone-200/80 bg-stone-50/50 p-4">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-stone-500 mb-2">Site Visit / Meeting Location (Bengaluru)</p>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="text-[10px] font-medium text-stone-400">Address</label>
+                    <input name="meetingSiteVisitAddress" defaultValue={editingLead.meetingSiteVisit?.address} className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" placeholder="e.g. MG Road, Koramangala" />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-medium text-stone-400">Postal Code</label>
+                    <input name="meetingSiteVisitPostalCode" defaultValue={editingLead.meetingSiteVisit?.postalCode} className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" placeholder="e.g. 560001" />
+                  </div>
+                </div>
+              </div>
               <div>
                 <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Notes</label>
                 <textarea name="notes" rows={2} defaultValue={editingLead.notes} className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" />
@@ -676,6 +710,7 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
                 ['Location', selectedLead.location],
                 ['Meeting Time', formatMeetingDateTime(selectedLead.meetingAt)],
                 ['Meeting Location', selectedLead.meetingLocation || 'Not set'],
+                ['Site Visit Address', selectedLead.meetingSiteVisit?.address ? `${selectedLead.meetingSiteVisit.address}${selectedLead.meetingSiteVisit.postalCode ? ` (${selectedLead.meetingSiteVisit.postalCode})` : ''}` : 'Not set'],
                 ['Created', selectedLead.createdAt],
                 ['Email', selectedLead.email],
                 ['Phone', selectedLead.phone],

@@ -24,6 +24,12 @@ function sanitizeLeadPayload(payload) {
   if ('assignedTo' in data) data.assignedTo = data.assignedTo ?? ''
   if ('meetingAt' in data) data.meetingAt = data.meetingAt ? new Date(data.meetingAt) : null
   if ('meetingLocation' in data) data.meetingLocation = data.meetingLocation ?? ''
+  if ('meetingSiteVisit' in data) {
+    data.meetingSiteVisit = {
+      address: String(data.meetingSiteVisit?.address ?? '').trim(),
+      postalCode: String(data.meetingSiteVisit?.postalCode ?? '').trim(),
+    }
+  }
   delete data.comments
   return data
 }

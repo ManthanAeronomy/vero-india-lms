@@ -44,6 +44,11 @@ const leadSchema = new mongoose.Schema(
   meetingAt: { type: Date, default: null },
   meetingLocation: { type: String, default: "" },
 
+  meetingSiteVisit: {
+    address: { type: String, default: "" },
+    postalCode: { type: String, default: "" },
+  },
+
   notes: { type: String, default: "" },
   location: { type: String, default: "" },
   comments: { type: [commentSchema], default: [] }
@@ -59,6 +64,11 @@ const leadSchema = new mongoose.Schema(
       ret.assignedTo = ret.assignedTo ?? "";
       ret.meetingAt = ret.meetingAt ? ret.meetingAt.toISOString() : "";
       ret.meetingLocation = ret.meetingLocation ?? "";
+      ret.meetingSiteVisit = ret.meetingSiteVisit ?? {};
+      ret.meetingSiteVisit = {
+        address: ret.meetingSiteVisit?.address ?? "",
+        postalCode: ret.meetingSiteVisit?.postalCode ?? "",
+      };
       ret.comments = (ret.comments ?? []).map((comment) => ({
         id: comment._id.toString(),
         authorId: comment.authorId,
