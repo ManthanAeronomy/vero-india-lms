@@ -9,7 +9,7 @@ type AuthResponse = {
   user: AuthUser;
 }
 
-const API = '/api/auth';
+const API = 'https://api.veroindia.in/api/auth';
 
 async function parseAuthResponse(res: Response): Promise<AuthResponse> {
   const text = await res.text();

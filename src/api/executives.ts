@@ -1,6 +1,6 @@
 import type { Executive } from '@/data/types';
 
-const API = '/api/executives';
+const API = 'https://api.veroindia.in/api/executives';
 
 export type CreateExecutiveInput = Omit<Executive, 'id'>;
 

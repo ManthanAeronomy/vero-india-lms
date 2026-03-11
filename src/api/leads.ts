@@ -1,6 +1,6 @@
 import type { Lead, Channel, DealStage, Priority } from '@/data/types';
 
-const API = '/api/leads';
+const API = 'https://api.veroindia.in/api/leads';
 
 export type CreateLeadInput = Omit<Lead, 'id' | 'createdAt' | 'lastActivity' | 'comments'> & {
   createdAt?: string;

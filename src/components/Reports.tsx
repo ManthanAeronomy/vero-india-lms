@@ -5,7 +5,7 @@ import { cn } from '@/utils/cn';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLeads } from '@/contexts/LeadsContext';
 import { useExecutives } from '@/contexts/ExecutivesContext';
-import { exportElementToPdf } from '@/utils/exportPdf';
+import { exportElementToPdf, generateReportPdf, type ReportData } from '@/utils/exportPdf';
 
 function formatCurrency(value: number): string {
   if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
@@ -31,6 +31,7 @@ export function Reports() {
   const { executives } = useExecutives();
   const [period, setPeriod] = useState<'weekly' | 'monthly'>('weekly');
   const [exportingSection, setExportingSection] = useState<string | null>(null);
+  const [exportingFullReport, setExportingFullReport] = useState(false);
   const isTeamMember = user?.role === 'team_member';
   const trendRef = useRef<HTMLDivElement | null>(null);
   const revenueRef = useRef<HTMLDivElement | null>(null);
@@ -121,8 +122,64 @@ export function Reports() {
     setExportingSection(sectionId);
     try {
       await exportElementToPdf(element, filename, title);
+    } catch (err) {
+      console.error('Export failed:', err);
     } finally {
       setExportingSection(null);
+    }
+  }
+
+  function handleDownloadFullReport() {
+    setExportingFullReport(true);
+    try {
+      const totalLeads = leads.length;
+      const converted = leads.filter((l) => l.stage === 'Won').length;
+      const revenue = leads.filter((l) => l.stage === 'Won').reduce((s, l) => s + l.value, 0);
+      const avgDealSize = converted > 0 ? revenue / converted : 0;
+
+      const reportData: ReportData = {
+        period,
+        generatedAt: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+        metrics: {
+          totalLeads,
+          conversions: converted,
+          revenue,
+          avgDealSize,
+        },
+        channelPerformance: channelPerformance.map((ch) => ({
+          name: ch.name,
+          leads: ch.leads,
+          converted: ch.converted,
+          value: ch.value,
+          color: ch.color,
+        })),
+        revenueData:
+          period === 'weekly'
+            ? weeklyData.map((d) => ({ label: d.week, revenue: d.revenue }))
+            : monthlyData.map((d) => ({ label: d.month, revenue: d.revenue })),
+        leadTrendData:
+          period === 'weekly'
+            ? weeklyData.map((d) => ({
+                label: d.week,
+                leads: d.IndiaMART + d.WhatsApp + d.JustDial + d.Website,
+                converted: d.converted,
+              }))
+            : monthlyData.map((d) => ({ label: d.month, leads: d.leads, converted: d.converted })),
+        executives: !isTeamMember
+          ? executives.map((exec) => {
+              const execLeads = leads.filter((l) => l.assignedTo === exec.name);
+              const execRevenue = execLeads.filter((l) => l.stage === 'Won').reduce((s, l) => s + l.value, 0);
+              const total = execLeads.filter((l) => l.stage === 'Won' || l.stage === 'Lost').length;
+              const conversionRate = total > 0 ? Math.round((execLeads.filter((l) => l.stage === 'Won').length / total) * 100) : 0;
+              return { name: exec.name, region: exec.region, conversionRate, revenue: execRevenue };
+            })
+          : undefined,
+      };
+      generateReportPdf(reportData);
+    } catch (err) {
+      console.error('Report generation failed:', err);
+    } finally {
+      setExportingFullReport(false);
     }
   }
 
@@ -155,11 +212,19 @@ export function Reports() {
             Date range
           </button>
           <button
+            onClick={handleDownloadFullReport}
+            disabled={exportingFullReport}
+            className="flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-[12px] font-medium text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
+          >
+            <Download className="h-3.5 w-3.5" />
+            {exportingFullReport ? 'Generating...' : 'Download Full Report'}
+          </button>
+          <button
             onClick={() => handleExport('overview', trendRef.current, `analytics-${period}-trend.pdf`, `${period === 'weekly' ? 'Weekly' : 'Monthly'} Lead Trend`)}
             className="flex items-center gap-1.5 rounded-lg border border-stone-200 bg-white px-3 py-2 text-[12px] font-medium text-stone-600 hover:bg-stone-50 transition-colors"
           >
             <Download className="h-3.5 w-3.5" />
-            {exportingSection === 'overview' ? 'Exporting...' : 'Export'}
+            {exportingSection === 'overview' ? 'Exporting...' : 'Export Chart'}
           </button>
         </div>
       </div>

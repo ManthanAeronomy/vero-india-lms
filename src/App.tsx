@@ -16,6 +16,7 @@ import { MeetingsCalendar } from '@/components/MeetingsCalendar';
 import { BengaluruMap } from '@/components/BengaluruMap';
 import { Reports } from '@/components/Reports';
 import { Assignments } from '@/components/Assignments';
+import { AIHub } from '@/components/AIHub';
 import { SettingsPage } from '@/components/SettingsPage';
 import { NotificationsPanel } from '@/components/NotificationsPanel';
 import { NotificationsProvider } from '@/contexts/NotificationsContext';
@@ -23,7 +24,7 @@ import { Bell, Search, Command } from 'lucide-react';
 import type { AuthUser } from '@/api/auth';
 import { cn } from '@/utils/cn';
 
-type Page = 'dashboard' | 'leads' | 'pipeline' | 'calendar' | 'map' | 'reports' | 'assignments' | 'settings';
+type Page = 'dashboard' | 'leads' | 'pipeline' | 'calendar' | 'map' | 'reports' | 'aihub' | 'assignments' | 'settings';
 
 export function App() {
   const { user, loading, logout } = useAuth();
@@ -64,6 +65,7 @@ const pageLabels: Record<Page, string> = {
   calendar: 'Calendar',
   map: 'Bengaluru Map',
   reports: 'Reports',
+  aihub: 'AI Hub',
   assignments: 'Assignments',
   settings: 'Settings',
 };
@@ -89,8 +91,8 @@ function AuthenticatedWorkspace({ user, onLogout }: { user: AuthUser; onLogout: 
   const allowedPages = useMemo<Page[]>(
     () =>
       user.role === 'admin'
-        ? ['dashboard', 'leads', 'pipeline', 'calendar', 'map', 'reports', 'assignments', 'settings']
-        : ['dashboard', 'leads', 'calendar', 'map', 'reports', 'settings'],
+        ? ['dashboard', 'leads', 'pipeline', 'calendar', 'map', 'reports', 'aihub', 'assignments', 'settings']
+        : ['dashboard', 'leads', 'calendar', 'map', 'reports', 'aihub', 'settings'],
     [user.role]
   );
 
@@ -346,6 +348,7 @@ function AuthenticatedWorkspace({ user, onLogout }: { user: AuthUser; onLogout: 
           {currentPage === 'calendar' && <MeetingsCalendar />}
           {currentPage === 'map' && <BengaluruMap />}
           {currentPage === 'reports' && <Reports />}
+          {currentPage === 'aihub' && <AIHub />}
           {currentPage === 'assignments' && <Assignments />}
           {currentPage === 'settings' && <SettingsPage />}
         </div>
