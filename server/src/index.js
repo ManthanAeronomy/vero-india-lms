@@ -19,32 +19,25 @@ const allowedOrigins = [
   'https://www.app.veroindia.in'
 ];
 
-app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
-  next();
-});
-
-app.use(cors({
+const corsOptions = {
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
     if (!origin) return callback(null, true);
-    
-    // Normalize and check
     const normalizedOrigin = origin.toLowerCase().trim();
     if (allowedOrigins.includes(normalizedOrigin)) {
       callback(null, true);
     } else {
       console.log(`CORS Blocked for: ${origin}`);
-      // During debugging, let's still return true but log it
-      // Actually, let's just allow it for now to see if headers appear
-      callback(null, true); 
+      callback(new Error(`Origin ${origin} not allowed`));
     }
   },
   credentials: true,
-  optionsSuccessStatus: 200
-}));
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept'],
+  optionsSuccessStatus: 204
+};
 
-app.options('*', cors());
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 app.use(express.json())
 
