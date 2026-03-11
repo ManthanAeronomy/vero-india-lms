@@ -45,7 +45,7 @@ app.use('/api/ai', requireAuth, aiRouter)
 
 // health check
 app.get('/api/health', (_req, res) => {
-  res.json({ ok: true })
+  res.json({ ok: true, version: '2026-03-11-v3', cors: 'manual-headers' })
 })
 
 const uri = process.env.MONGODB_URI
