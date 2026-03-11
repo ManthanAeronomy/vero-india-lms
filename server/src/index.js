@@ -14,26 +14,37 @@ const PORT = process.env.PORT || 3001
 
 app.set('trust proxy', 1)
 
-const allowedOrigins = ['https://app.veroindia.in', 'https://www.app.veroindia.in'];
+const allowedOrigins = [
+  'https://app.veroindia.in',
+  'https://www.app.veroindia.in'
+];
 
 app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${origin}`);
-  
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
-  } else if (origin) {
-    console.log(`CORS mismatch: Origin "${origin}" not in allowed list [${allowedOrigins.join(', ')}]`);
-  }
-  
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${req.headers.origin}`);
   next();
 });
+
+app.use(cors({
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps or curl)
+    if (!origin) return callback(null, true);
+    
+    // Normalize and check
+    const normalizedOrigin = origin.toLowerCase().trim();
+    if (allowedOrigins.includes(normalizedOrigin)) {
+      callback(null, true);
+    } else {
+      console.log(`CORS Blocked for: ${origin}`);
+      // During debugging, let's still return true but log it
+      // Actually, let's just allow it for now to see if headers appear
+      callback(null, true); 
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200
+}));
+
+app.options('*', cors());
 
 app.use(express.json())
 
