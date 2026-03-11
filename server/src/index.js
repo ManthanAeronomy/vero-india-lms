@@ -12,7 +12,14 @@ import aiRouter from './routes/ai.js'
 const app = express()
 const PORT = process.env.PORT || 3001
 
-app.use(cors({ origin: 'https://app.veroindia.in', credentials: true }))
+app.set('trust proxy', 1)
+app.use(cors({ 
+  origin: ['https://app.veroindia.in', 'https://www.app.veroindia.in'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
+}))
+app.options('*', cors())
 app.use(express.json())
 
 // mount routers

@@ -50,8 +50,8 @@ export function parseCookies(cookieHeader = '') {
 export function setSessionCookie(res, token) {
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+    secure: true,
     maxAge: SESSION_TTL_MS,
     path: '/',
   })
@@ -60,8 +60,8 @@ export function setSessionCookie(res, token) {
 export function clearSessionCookie(res) {
   res.clearCookie(SESSION_COOKIE_NAME, {
     httpOnly: true,
-    sameSite: 'lax',
-    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'none',
+    secure: true,
     path: '/',
   })
 }
