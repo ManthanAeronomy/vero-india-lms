@@ -13,13 +13,28 @@ const app = express()
 const PORT = process.env.PORT || 3001
 
 app.set('trust proxy', 1)
-app.use(cors({ 
-  origin: ['https://app.veroindia.in', 'https://www.app.veroindia.in'],
-  credentials: true,
-  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Accept']
-}))
-app.options('*', cors())
+
+const allowedOrigins = ['https://app.veroindia.in', 'https://www.app.veroindia.in'];
+
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} - Origin: ${origin}`);
+  
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PATCH, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Origin, Accept');
+  } else if (origin) {
+    console.log(`CORS mismatch: Origin "${origin}" not in allowed list [${allowedOrigins.join(', ')}]`);
+  }
+  
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json())
 
 // mount routers
@@ -34,6 +49,11 @@ app.get('/api/health', (_req, res) => {
 })
 
 const uri = process.env.MONGODB_URI
+
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err);
+  res.status(500).json({ error: 'Internal Server Error', details: err.message });
+});
 
 mongoose.connect(uri)
   .then(() => {
