@@ -3,6 +3,13 @@ import { SESSION_COOKIE_NAME, hashSessionToken, parseCookies } from '../utils/au
 
 export async function requireAuth(req, res, next) {
   try {
+    // API key auth for internal integrations (e.g. Make.com)
+    const apiKey = req.headers['x-api-key']
+    if (apiKey && apiKey === process.env.INTERNAL_API_KEY) {
+      return next()
+    }
+
+    // Existing session cookie auth
     const cookies = parseCookies(req.headers.cookie)
     const sessionToken = cookies[SESSION_COOKIE_NAME]
 
