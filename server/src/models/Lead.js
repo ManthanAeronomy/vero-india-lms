@@ -30,7 +30,7 @@ const leadSchema = new mongoose.Schema(
 {
   name: { type: String, required: true },
   company: { type: String, required: true },
-  email: { type: String, required: true },
+  email: { type: String, required: false, default: "" },
   phone: { type: String, required: true },
 
   channel: { type: String, enum: channelEnum, required: true, lowercase: true },

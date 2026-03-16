@@ -14,7 +14,7 @@ export interface Lead {
   id: string;
   name: string;
   company: string;
-  email: string;
+  email?: string;
   phone: string;
   channel: Channel;
   stage: DealStage;

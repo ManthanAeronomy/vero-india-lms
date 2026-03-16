@@ -138,7 +138,7 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
       await createLead({
         name: fd.get('name') as string,
         company: fd.get('company') as string,
-        email: fd.get('email') as string,
+        email: (fd.get('email') as string) || '',
         phone: fd.get('phone') as string,
         channel: fd.get('channel') as Channel,
         stage: (fd.get('stage') as DealStage) || 'New',
@@ -178,7 +178,7 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
       const updatedLead = await updateLead(editingLead.id, {
         name: fd.get('name') as string,
         company: fd.get('company') as string,
-        email: fd.get('email') as string,
+        email: (fd.get('email') as string) || '',
         phone: fd.get('phone') as string,
         channel: fd.get('channel') as Channel,
         stage: (fd.get('stage') as DealStage) || 'New',
@@ -460,8 +460,8 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Email *</label>
-                  <input name="email" type="email" required className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" />
+                  <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Email</label>
+                  <input name="email" type="email" className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" />
                 </div>
                 <div>
                   <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Phone *</label>
@@ -578,8 +578,8 @@ export function LeadsTable({ externalSearch = '' }: { externalSearch?: string })
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Email *</label>
-                  <input name="email" type="email" defaultValue={editingLead.email} required className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" />
+                  <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Email</label>
+                  <input name="email" type="email" defaultValue={editingLead.email ?? ''} className="mt-1 w-full rounded-lg border border-stone-200 px-3 py-2 text-[13px]" />
                 </div>
                 <div>
                   <label className="text-[11px] font-medium uppercase tracking-wider text-stone-500">Phone *</label>
