@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 
-const channelEnum = ["indiamart", "website", "whatsapp", "justdial", "email", "referral", "other"];
+const channelEnum = ["indiamart", "website", "whatsapp", "justdial", "email", "referral", "3m", "other"];
 const channelLabelMap = {
   indiamart: "IndiaMART",
   website: "Website",
@@ -8,6 +8,7 @@ const channelLabelMap = {
   justdial: "JustDial",
   email: "Email",
   referral: "Referral",
+  "3m": "3M",
   other: "Other",
 };
 const stageEnum = ["New", "Contacted", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
