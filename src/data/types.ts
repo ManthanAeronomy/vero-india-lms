@@ -1,4 +1,4 @@
-export type Channel = 'IndiaMART' | 'WhatsApp' | 'JustDial' | 'Website';
+export type Channel = 'IndiaMART' | 'WhatsApp' | 'JustDial' | 'Website' | '3M';
 export type DealStage = 'New' | 'Contacted' | 'Qualified' | 'Proposal' | 'Negotiation' | 'Won' | 'Lost';
 export type Priority = 'High' | 'Medium' | 'Low';
 

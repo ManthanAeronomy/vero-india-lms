@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Search, Filter, Building2, MessageSquare, Phone, Globe, ArrowUpDown, Eye, MoreHorizontal, Plus, Pencil, X } from 'lucide-react';
+import { Search, Filter, Building2, MessageSquare, Phone, Globe, ArrowUpDown, Eye, MoreHorizontal, Plus, Pencil, X, Factory } from 'lucide-react';
 import { type Lead, type Channel, type DealStage } from '@/data/mockData';
 import { useLeads } from '@/contexts/LeadsContext';
 import { useExecutives } from '@/contexts/ExecutivesContext';
@@ -19,6 +19,7 @@ function formatChannelLabel(channel: string): string {
   if (normalized === 'whatsapp') return 'WhatsApp';
   if (normalized === 'justdial') return 'JustDial';
   if (normalized === 'website') return 'Website';
+   if (normalized === '3m') return '3M';
   return channel;
 }
 
@@ -41,19 +42,21 @@ function formatMeetingDateTime(value: string): string {
 }
 
 const channelIcons: Record<string, React.ReactNode> = {
-  'IndiaMART': <Building2 className="h-3.5 w-3.5" />,
-  'WhatsApp': <MessageSquare className="h-3.5 w-3.5" />,
-  'JustDial': <Phone className="h-3.5 w-3.5" />,
-  'Website': <Globe className="h-3.5 w-3.5" />,
-  'website': <Globe className="h-3.5 w-3.5" />,
+  IndiaMART: <Building2 className="h-3.5 w-3.5" />,
+  WhatsApp: <MessageSquare className="h-3.5 w-3.5" />,
+  JustDial: <Phone className="h-3.5 w-3.5" />,
+  Website: <Globe className="h-3.5 w-3.5" />,
+  website: <Globe className="h-3.5 w-3.5" />,
+  '3M': <Factory className="h-3.5 w-3.5" />,
 };
 
 const channelStyles: Record<string, string> = {
-  'IndiaMART': 'bg-indigo-50 text-indigo-600 ring-indigo-100',
-  'WhatsApp': 'bg-emerald-50 text-emerald-600 ring-emerald-100',
-  'JustDial': 'bg-amber-50 text-amber-600 ring-amber-100',
-  'Website': 'bg-sky-50 text-sky-600 ring-sky-100',
-  'website': 'bg-sky-50 text-sky-600 ring-sky-100',
+  IndiaMART: 'bg-indigo-50 text-indigo-600 ring-indigo-100',
+  WhatsApp: 'bg-emerald-50 text-emerald-600 ring-emerald-100',
+  JustDial: 'bg-amber-50 text-amber-600 ring-amber-100',
+  Website: 'bg-sky-50 text-sky-600 ring-sky-100',
+  website: 'bg-sky-50 text-sky-600 ring-sky-100',
+  '3M': 'bg-slate-50 text-slate-600 ring-slate-100',
 };
 
 const stageStyles: Record<string, string> = {
@@ -72,7 +75,7 @@ const priorityStyles: Record<string, string> = {
   'Low': 'bg-stone-50 text-stone-500',
 };
 
-const allChannels: Channel[] = ['IndiaMART', 'WhatsApp', 'JustDial', 'Website'];
+const allChannels: Channel[] = ['IndiaMART', 'WhatsApp', 'JustDial', 'Website', '3M'];
 const allStages: DealStage[] = ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost'];
 
 export function LeadsTable({ externalSearch = '' }: { externalSearch?: string }) {
