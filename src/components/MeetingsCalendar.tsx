@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { CalendarDays, ChevronLeft, ChevronRight, Clock3, MapPin } from 'lucide-react';
 
 import { useLeads } from '@/contexts/LeadsContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { cn } from '@/utils/cn';
 
 function startOfMonth(date: Date) {
@@ -33,14 +34,19 @@ function formatMeetingTime(value: string) {
 
 export function MeetingsCalendar() {
   const { leads } = useLeads();
+  const { user } = useAuth();
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()));
 
   const scheduledLeads = useMemo(
-    () =>
-      leads
-        .filter((lead) => lead.meetingAt)
-        .sort((a, b) => new Date(a.meetingAt).getTime() - new Date(b.meetingAt).getTime()),
-    [leads]
+    () => {
+      const base = leads.filter((lead) => lead.meetingAt);
+      const scoped =
+        user?.role === 'team_member'
+          ? base.filter((lead) => lead.assignedTo === user.name)
+          : base;
+      return scoped.sort((a, b) => new Date(a.meetingAt).getTime() - new Date(b.meetingAt).getTime());
+    },
+    [leads, user]
   );
 
   const meetingsByDay = useMemo(() => {

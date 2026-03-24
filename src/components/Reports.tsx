@@ -6,6 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLeads } from '@/contexts/LeadsContext';
 import { useExecutives } from '@/contexts/ExecutivesContext';
 import { exportElementToPdf, generateReportPdf, type ReportData } from '@/utils/exportPdf';
+import { ANALYTICS_CHANNELS, channelForAnalytics, sumWeeklyChannelLeads, type WeeklyChannelRow } from '@/utils/channelAnalytics';
 
 function formatCurrency(value: number): string {
   if (value >= 10000000) return `₹${(value / 10000000).toFixed(1)}Cr`;
@@ -39,12 +40,14 @@ export function Reports() {
   const teamRef = useRef<HTMLDivElement | null>(null);
 
   const weeklyData = useMemo(() => {
-    const byWeek = new Map<string, { IndiaMART: number; WhatsApp: number; JustDial: number; Website: number; converted: number; revenue: number }>();
+    const emptyChannels = () =>
+      Object.fromEntries(ANALYTICS_CHANNELS.map((c) => [c, 0])) as Record<(typeof ANALYTICS_CHANNELS)[number], number>;
+    const byWeek = new Map<string, ReturnType<typeof emptyChannels> & { converted: number; revenue: number }>();
     for (const l of leads) {
       const key = getWeekKey(l.createdAt);
-      const curr = byWeek.get(key) ?? { IndiaMART: 0, WhatsApp: 0, JustDial: 0, Website: 0, converted: 0, revenue: 0 };
-      const chKey = (l.channel?.charAt(0)?.toUpperCase() ?? '') + (l.channel?.slice(1)?.toLowerCase() ?? '');
-      curr[chKey as keyof typeof curr] = ((curr[chKey as keyof typeof curr] as number) ?? 0) + 1;
+      const curr = byWeek.get(key) ?? { ...emptyChannels(), converted: 0, revenue: 0 };
+      const ck = channelForAnalytics(l.channel);
+      if (ck) curr[ck] += 1;
       if (l.stage === 'Won') {
         curr.converted += 1;
         curr.revenue += l.value;
@@ -52,7 +55,12 @@ export function Reports() {
       byWeek.set(key, curr);
     }
     const sorted = [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-4);
-    return sorted.map(([week, v]) => ({ week: week.slice(5), IndiaMART: v.IndiaMART ?? 0, WhatsApp: v.WhatsApp ?? 0, JustDial: v.JustDial ?? 0, Website: v.Website ?? 0, converted: v.converted, revenue: v.revenue }));
+    return sorted.map(([week, v]) => ({
+      week: week.slice(5),
+      ...Object.fromEntries(ANALYTICS_CHANNELS.map((c) => [c, v[c] ?? 0])),
+      converted: v.converted,
+      revenue: v.revenue,
+    }));
   }, [leads]);
 
   const monthlyData = useMemo(() => {
@@ -72,11 +80,16 @@ export function Reports() {
     return sorted.map(([ym, v]) => ({ month: monthNames[parseInt(ym.slice(5), 10) - 1] ?? ym, ...v }));
   }, [leads]);
 
-  const channelColors: Record<string, string> = { IndiaMART: '#6366f1', WhatsApp: '#22c55e', JustDial: '#f59e0b', Website: '#0ea5e9' };
+  const channelColors: Record<string, string> = {
+    IndiaMART: '#6366f1',
+    WhatsApp: '#22c55e',
+    JustDial: '#f59e0b',
+    Website: '#0ea5e9',
+    '3M': '#64748b',
+  };
   const channelPerformance = useMemo(() => {
-    const chs = ['IndiaMART', 'WhatsApp', 'JustDial', 'Website'] as const;
-    return chs.map((name) => {
-      const chLeads = leads.filter((l) => (l.channel?.toLowerCase?.() ?? l.channel) === name.toLowerCase());
+    return ANALYTICS_CHANNELS.map((name) => {
+      const chLeads = leads.filter((l) => channelForAnalytics(l.channel) === name);
       const converted = chLeads.filter((l) => l.stage === 'Won').length;
       const value = chLeads.filter((l) => l.stage === 'Won').reduce((s, l) => s + l.value, 0);
       return { name, leads: chLeads.length, converted, value, color: channelColors[name] ?? '#0ea5e9' };
@@ -114,7 +127,14 @@ export function Reports() {
     ];
   }, [leads]);
 
-  const chartData = period === 'weekly' ? (weeklyData.length ? weeklyData : [{ week: '-', IndiaMART: 0, WhatsApp: 0, JustDial: 0, Website: 0 }]) : (monthlyData.length ? monthlyData : [{ month: '-', leads: 0, converted: 0, revenue: 0 }]);
+  const chartData =
+    period === 'weekly'
+      ? weeklyData.length
+        ? weeklyData
+        : [{ week: '-', ...Object.fromEntries(ANALYTICS_CHANNELS.map((c) => [c, 0])) }]
+      : monthlyData.length
+        ? monthlyData
+        : [{ month: '-', leads: 0, converted: 0, revenue: 0 }];
   const revenueData = period === 'weekly' ? (weeklyData.length ? weeklyData : [{ week: '-', revenue: 0 }]) : (monthlyData.length ? monthlyData : [{ month: '-', revenue: 0 }]);
 
   async function handleExport(sectionId: string, element: HTMLDivElement | null, filename: string, title: string) {
@@ -161,7 +181,7 @@ export function Reports() {
           period === 'weekly'
             ? weeklyData.map((d) => ({
                 label: d.week,
-                leads: d.IndiaMART + d.WhatsApp + d.JustDial + d.Website,
+                leads: sumWeeklyChannelLeads(d as WeeklyChannelRow),
                 converted: d.converted,
               }))
             : monthlyData.map((d) => ({ label: d.month, leads: d.leads, converted: d.converted })),
@@ -275,6 +295,7 @@ export function Reports() {
                 <Bar dataKey="WhatsApp" fill="#22c55e" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="JustDial" fill="#f59e0b" radius={[4, 4, 0, 0]} />
                 <Bar dataKey="Website" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="3M" fill="#64748b" radius={[4, 4, 0, 0]} />
               </BarChart>
             ) : (
               <LineChart data={chartData}>

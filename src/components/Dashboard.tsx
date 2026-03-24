@@ -1,10 +1,11 @@
 import { useMemo, useRef, useState } from 'react';
-import { TrendingUp, TrendingDown, Users, IndianRupee, Target, ArrowUpRight, Zap, Phone, MessageSquare, Building2, Globe, Download } from 'lucide-react';
+import { TrendingUp, TrendingDown, Users, IndianRupee, Target, Zap, Phone, MessageSquare, Building2, Globe, Download, Factory } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import type { DealStage } from '@/data/types';
 import { useLeads } from '@/contexts/LeadsContext';
 import { useExecutives } from '@/contexts/ExecutivesContext';
 import { exportElementToPdf } from '@/utils/exportPdf';
+import { ANALYTICS_CHANNELS, channelForAnalytics } from '@/utils/channelAnalytics';
 
 const stageColors: Record<DealStage, string> = {
   New: '#94a3b8', Contacted: '#60a5fa', Qualified: '#a78bfa', Proposal: '#fb923c',
@@ -17,6 +18,7 @@ const channelColors: Record<string, string> = {
   JustDial: '#f59e0b',
   Website: '#0ea5e9',
   website: '#0ea5e9',
+  '3M': '#64748b',
 };
 
 const channelBgColors: Record<string, string> = {
@@ -25,6 +27,7 @@ const channelBgColors: Record<string, string> = {
   JustDial: 'bg-amber-50 text-amber-600 ring-amber-100',
   Website: 'bg-sky-50 text-sky-600 ring-sky-100',
   website: 'bg-sky-50 text-sky-600 ring-sky-100',
+  '3M': 'bg-slate-50 text-slate-600 ring-slate-100',
 };
 
 const channelIcons: Record<string, React.ReactNode> = {
@@ -33,6 +36,15 @@ const channelIcons: Record<string, React.ReactNode> = {
   JustDial: <Phone className="h-3.5 w-3.5" />,
   Website: <Globe className="h-3.5 w-3.5" />,
   website: <Globe className="h-3.5 w-3.5" />,
+  '3M': <Factory className="h-3.5 w-3.5" />,
+};
+
+const channelLegendDot: Record<string, string> = {
+  IndiaMART: 'bg-indigo-500',
+  WhatsApp: 'bg-emerald-500',
+  JustDial: 'bg-amber-500',
+  Website: 'bg-sky-500',
+  '3M': 'bg-slate-500',
 };
 
 function formatCurrency(value: number): string {
@@ -54,7 +66,7 @@ function getMonthKey(dateStr: string): string {
 }
 
 export function Dashboard() {
-  const { leads, loading } = useLeads();
+  const { leads } = useLeads();
   const { executives } = useExecutives();
   const [exportingSection, setExportingSection] = useState<string | null>(null);
   const acquisitionRef = useRef<HTMLDivElement | null>(null);
@@ -86,12 +98,14 @@ export function Dashboard() {
   }));
 
   const weeklyData = useMemo(() => {
-    const byWeek = new Map<string, { IndiaMART: number; WhatsApp: number; JustDial: number; Website: number; converted: number; revenue: number }>();
+    const emptyChannels = () =>
+      Object.fromEntries(ANALYTICS_CHANNELS.map((c) => [c, 0])) as Record<(typeof ANALYTICS_CHANNELS)[number], number>;
+    const byWeek = new Map<string, ReturnType<typeof emptyChannels> & { converted: number; revenue: number }>();
     for (const l of leads) {
       const key = getWeekKey(l.createdAt);
-      const curr = byWeek.get(key) ?? { IndiaMART: 0, WhatsApp: 0, JustDial: 0, Website: 0, converted: 0, revenue: 0 };
-      const chKey = (l.channel?.charAt(0)?.toUpperCase() ?? '') + (l.channel?.slice(1)?.toLowerCase() ?? '');
-      curr[chKey as keyof typeof curr] = ((curr[chKey as keyof typeof curr] as number) ?? 0) + 1;
+      const curr = byWeek.get(key) ?? { ...emptyChannels(), converted: 0, revenue: 0 };
+      const ck = channelForAnalytics(l.channel);
+      if (ck) curr[ck] += 1;
       if (l.stage === 'Won') {
         curr.converted += 1;
         curr.revenue += l.value;
@@ -99,7 +113,12 @@ export function Dashboard() {
       byWeek.set(key, curr);
     }
     const sorted = [...byWeek.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-4);
-    return sorted.map(([week, v]) => ({ week: week.slice(5), IndiaMART: v.IndiaMART ?? 0, WhatsApp: v.WhatsApp ?? 0, JustDial: v.JustDial ?? 0, Website: v.Website ?? 0, converted: v.converted, revenue: v.revenue }));
+    return sorted.map(([week, v]) => ({
+      week: week.slice(5),
+      ...Object.fromEntries(ANALYTICS_CHANNELS.map((c) => [c, v[c] ?? 0])),
+      converted: v.converted,
+      revenue: v.revenue,
+    }));
   }, [leads]);
 
   const monthlyData = useMemo(() => {
@@ -120,9 +139,8 @@ export function Dashboard() {
   }, [leads]);
 
   const channelPerformance = useMemo(() => {
-    const chs = ['IndiaMART', 'WhatsApp', 'JustDial', 'Website'] as const;
-    return chs.map((name) => {
-      const chLeads = leads.filter((l) => (l.channel?.toLowerCase?.() ?? l.channel) === name.toLowerCase());
+    return ANALYTICS_CHANNELS.map((name) => {
+      const chLeads = leads.filter((l) => channelForAnalytics(l.channel) === name);
       const converted = chLeads.filter((l) => l.stage === 'Won').length;
       const value = chLeads.filter((l) => l.stage === 'Won').reduce((s, l) => s + l.value, 0);
       return { name, leads: chLeads.length, converted, value, color: channelColors[name] };
@@ -204,16 +222,22 @@ export function Dashboard() {
                 <Download className="h-3.5 w-3.5" />
                 {exportingSection === 'acquisition' ? 'Exporting...' : 'PDF'}
               </button>
-              {['IndiaMART', 'WhatsApp', 'JustDial', 'Website'].map((ch) => (
+              {ANALYTICS_CHANNELS.map((ch) => (
                 <div key={ch} className="flex items-center gap-1.5">
-                  <div className={`h-2 w-2 rounded-full ${ch === 'IndiaMART' ? 'bg-indigo-500' : ch === 'WhatsApp' ? 'bg-emerald-500' : ch === 'JustDial' ? 'bg-amber-500' : 'bg-sky-500'}`} />
+                  <div className={`h-2 w-2 rounded-full ${channelLegendDot[ch] ?? 'bg-stone-400'}`} />
                   <span className="text-[11px] text-stone-500">{ch}</span>
                 </div>
               ))}
             </div>
           </div>
           <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={weeklyData.length ? weeklyData : [{ week: '-', IndiaMART: 0, WhatsApp: 0, JustDial: 0, Website: 0 }]}>
+            <AreaChart
+              data={
+                weeklyData.length
+                  ? weeklyData
+                  : [{ week: '-', ...Object.fromEntries(ANALYTICS_CHANNELS.map((c) => [c, 0])) }]
+              }
+            >
               <defs>
                 <linearGradient id="colorIM" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
@@ -231,6 +255,10 @@ export function Dashboard() {
                   <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.15} />
                   <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0} />
                 </linearGradient>
+                <linearGradient id="color3M" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#64748b" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="#64748b" stopOpacity={0} />
+                </linearGradient>
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f0ee" />
               <XAxis dataKey="week" tick={{ fontSize: 11, fill: '#a8a29e' }} axisLine={false} tickLine={false} />
@@ -240,6 +268,7 @@ export function Dashboard() {
               <Area type="monotone" dataKey="WhatsApp" stroke="#22c55e" strokeWidth={2} fill="url(#colorWA)" />
               <Area type="monotone" dataKey="JustDial" stroke="#f59e0b" strokeWidth={2} fill="url(#colorJD)" />
               <Area type="monotone" dataKey="Website" stroke="#0ea5e9" strokeWidth={2} fill="url(#colorWeb)" />
+              <Area type="monotone" dataKey="3M" stroke="#64748b" strokeWidth={2} fill="url(#color3M)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

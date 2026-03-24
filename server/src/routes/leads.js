@@ -10,6 +10,7 @@ const channelMap = {
   justdial: 'justdial',
   email: 'email',
   referral: 'referral',
+  '3m': '3m',
   other: 'other',
 }
 
