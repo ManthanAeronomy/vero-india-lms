@@ -63,11 +63,46 @@ const BENGALURU_PINCODE_COORDS: Record<string, [number, number]> = {
 const BENGALURU_CENTER: [number, number] = [12.9716, 77.5946];
 
 /**
+ * First postal code in free text. Prefers Bengaluru 560xxx (also matches "560 034").
+ * Avoids using the first 6 digits of a 10-digit phone number when a 560xxx PIN appears later.
+ */
+export function extractPostalCodeFromText(text: string | undefined): string | null {
+  if (!text?.trim()) return null;
+  const compact = text.replace(/\s/g, '');
+  const blr = compact.match(/(560\d{3})/);
+  if (blr) return blr[1];
+  const spaced = text.match(/\b([1-9]\d{2}\s?\d{3})\b/);
+  if (spaced) return spaced[1].replace(/\s/g, '');
+  const m = text.match(/\b([1-9]\d{5})\b/);
+  return m ? m[1] : null;
+}
+
+export interface MeetingLocationFields {
+  meetingLocation?: string;
+  meetingSiteVisit?: { address?: string; postalCode?: string };
+}
+
+/**
+ * Prefer explicit site-visit postal code; otherwise parse a 6-digit PIN from
+ * meeting location or site visit address (users often put the PIN only in Meeting Location).
+ */
+export function resolveMeetingPostalForGeocode(lead: MeetingLocationFields): string {
+  const fromField = String(lead.meetingSiteVisit?.postalCode ?? '')
+    .trim()
+    .replace(/\D/g, '');
+  if (fromField.length >= 6) return fromField.slice(0, 6);
+  const fromMeeting = extractPostalCodeFromText(lead.meetingLocation);
+  if (fromMeeting) return fromMeeting;
+  const fromAddress = extractPostalCodeFromText(lead.meetingSiteVisit?.address);
+  return fromAddress ?? '';
+}
+
+/**
  * Geocode an address in Bengaluru using postal code lookup.
  * Instant, no external API calls.
  */
 export function geocodeBengaluruAddress(
-  address: string,
+  _address: string,
   postalCode: string
 ): Promise<{ lat: number; lng: number } | null> {
   const pin = String(postalCode || '').trim().replace(/\D/g, '');

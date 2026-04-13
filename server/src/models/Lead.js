@@ -1,6 +1,10 @@
 import mongoose from "mongoose";
 
-const channelEnum = ["indiamart", "website", "whatsapp", "justdial", "email", "referral", "3m", "other"];
+/** Allowed values for `channel` (integrations may omit; default is `other`). */
+export const LEAD_CHANNELS = ["indiamart", "website", "whatsapp", "justdial", "email", "referral", "3m", "other"];
+export const LEAD_STAGES = ["New", "Contacted", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
+export const LEAD_PRIORITIES = ["High", "Medium", "Low"];
+
 const channelLabelMap = {
   indiamart: "IndiaMART",
   website: "Website",
@@ -11,8 +15,6 @@ const channelLabelMap = {
   "3m": "3M",
   other: "Other",
 };
-const stageEnum = ["New", "Contacted", "Qualified", "Proposal", "Negotiation", "Won", "Lost"];
-const priorityEnum = ["High", "Medium", "Low"];
 
 const commentSchema = new mongoose.Schema(
 {
@@ -28,15 +30,15 @@ const commentSchema = new mongoose.Schema(
 
 const leadSchema = new mongoose.Schema(
 {
-  name: { type: String, required: true },
-  company: { type: String, required: true },
+  name: { type: String, required: false, default: "" },
+  company: { type: String, required: false, default: "" },
   email: { type: String, required: false, default: "" },
-  phone: { type: String, required: true },
+  phone: { type: String, required: false, default: "" },
 
-  channel: { type: String, enum: channelEnum, required: true, lowercase: true },
+  channel: { type: String, enum: LEAD_CHANNELS, required: false, lowercase: true, default: "other" },
 
-  stage: { type: String, enum: stageEnum, default: "New" },
-  priority: { type: String, enum: priorityEnum, default: "Medium" },
+  stage: { type: String, enum: LEAD_STAGES, default: "New" },
+  priority: { type: String, enum: LEAD_PRIORITIES, default: "Medium" },
 
   value: { type: Number, default: 0 },
 

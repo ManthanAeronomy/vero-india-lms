@@ -59,7 +59,7 @@
           "authenticationType": "noAuth"
         },
         "mapper": {
-          "url": "https://YOUR-NGROK-URL/api/ingest/lead",
+          "url": "https://api.veroindia.in/api/leads/ingest/lead",
           "method": "post",
           "contentType": "json",
           "body": {
@@ -77,6 +77,10 @@
             {
               "name": "Content-Type",
               "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "YOUR_INTERNAL_API_KEY"
             }
           ],
           "parseResponse": true,

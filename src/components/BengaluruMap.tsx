@@ -3,7 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, CircleMarker, Tooltip, useMap }
 import L from 'leaflet';
 import { MapPin, Clock3, Loader2 } from 'lucide-react';
 import { useLeads } from '@/contexts/LeadsContext';
-import { geocodeBengaluruAddress } from '@/utils/geocode';
+import { geocodeBengaluruAddress, resolveMeetingPostalForGeocode, type MeetingLocationFields } from '@/utils/geocode';
 import 'leaflet/dist/leaflet.css';
 
 // Fix default marker icons in react-leaflet (webpack/vite)
@@ -37,6 +37,13 @@ function formatMeetingTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatMeetingLocationLine(lead: MeetingLocationFields): string {
+  const pin = resolveMeetingPostalForGeocode(lead);
+  const loc = lead.meetingSiteVisit?.address?.trim() || lead.meetingLocation?.trim() || '';
+  if (loc && pin && !loc.replace(/\s/g, '').includes(pin)) return `${loc}, ${pin}`;
+  return loc || pin || '—';
+}
+
 function MapBounds({ positions }: { positions: [number, number][] }) {
   const map = useMap();
   useEffect(() => {
@@ -55,19 +62,22 @@ export function BengaluruMap() {
   const upcomingWithLocation = useMemo(
     () =>
       leads
-        .filter(
-          (l) =>
-            l.meetingAt &&
-            new Date(l.meetingAt) >= new Date() &&
-            l.meetingSiteVisit?.address &&
-            l.meetingSiteVisit?.postalCode
-        )
+        .filter((l) => {
+          if (!l.meetingAt || new Date(l.meetingAt) < new Date()) return false;
+          return resolveMeetingPostalForGeocode(l).length >= 6;
+        })
         .sort((a, b) => new Date(a.meetingAt).getTime() - new Date(b.meetingAt).getTime()),
     [leads]
   );
 
-  const leadIds = useMemo(
-    () => upcomingWithLocation.map((l) => l.id).sort().join(','),
+  const geocodeDepsKey = useMemo(
+    () =>
+      upcomingWithLocation
+        .map((l) => {
+          const pin = resolveMeetingPostalForGeocode(l);
+          return [l.id, pin, l.meetingLocation ?? '', l.meetingSiteVisit?.address ?? ''].join('::');
+        })
+        .join('|'),
     [upcomingWithLocation]
   );
 
@@ -75,12 +85,10 @@ export function BengaluruMap() {
     let cancelled = false;
     const run = async () => {
       const results = await Promise.all(
-        upcomingWithLocation.map((lead) =>
-          geocodeBengaluruAddress(
-            lead.meetingSiteVisit?.address ?? '',
-            lead.meetingSiteVisit?.postalCode ?? ''
-          )
-        )
+        upcomingWithLocation.map((lead) => {
+          const pin = resolveMeetingPostalForGeocode(lead);
+          return geocodeBengaluruAddress(lead.meetingSiteVisit?.address ?? '', pin);
+        })
       );
       if (cancelled) return;
       const next: Record<string, { lat: number; lng: number }> = {};
@@ -93,7 +101,7 @@ export function BengaluruMap() {
     return () => {
       cancelled = true;
     };
-  }, [leadIds]);
+  }, [geocodeDepsKey, upcomingWithLocation]);
 
   const positions = useMemo(
     () =>
@@ -154,12 +162,7 @@ export function BengaluruMap() {
                         <Clock3 className="h-3.5 w-3.5" />
                         {formatMeetingTime(lead.meetingAt)}
                       </div>
-                      <p className="mt-1 text-xs text-stone-500">
-                        {lead.meetingSiteVisit?.address}
-                        {lead.meetingSiteVisit?.postalCode
-                          ? `, ${lead.meetingSiteVisit.postalCode}`
-                          : ''}
-                      </p>
+                      <p className="mt-1 text-xs text-stone-500">{formatMeetingLocationLine(lead)}</p>
                     </div>
                   </Popup>
                 </Marker>
@@ -180,7 +183,7 @@ export function BengaluruMap() {
           <MapPin className="mx-auto h-10 w-10 text-stone-300" />
           <p className="mt-3 text-sm font-medium text-stone-600">No upcoming meetings with site visit locations</p>
           <p className="mt-1 text-sm text-stone-400">
-            Add Address and Postal Code in the Site Visit / Meeting Location section when creating or editing a lead.
+            Add an upcoming meeting time, a short location or site-visit address, and a 6-digit PIN (in Site Visit Postal Code or in Meeting Location, e.g. &quot;560034&quot;).
           </p>
         </div>
       )}
@@ -193,10 +196,7 @@ export function BengaluruMap() {
               <li key={lead.id} className="flex items-center justify-between rounded-lg border border-stone-100 px-3 py-2">
                 <div>
                   <p className="text-sm font-medium text-stone-800">{lead.name}</p>
-                  <p className="text-xs text-stone-500">
-                    {lead.meetingSiteVisit?.address}
-                    {lead.meetingSiteVisit?.postalCode ? ` (${lead.meetingSiteVisit.postalCode})` : ''}
-                  </p>
+                  <p className="text-xs text-stone-500">{formatMeetingLocationLine(lead)}</p>
                 </div>
                 <div className="text-right">
                   <p className="text-xs font-medium text-stone-600">{formatMeetingTime(lead.meetingAt)}</p>

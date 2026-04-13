@@ -1,5 +1,5 @@
 import { Router } from 'express'
-import { Lead } from '../models/Lead.js'
+import { Lead, LEAD_CHANNELS, LEAD_PRIORITIES, LEAD_STAGES } from '../models/Lead.js'
 
 const router = Router()
 
@@ -15,13 +15,60 @@ const channelMap = {
 }
 
 function normalizeChannel(channel) {
-  if (!channel) return channel
-  return channelMap[String(channel).trim().toLowerCase()] ?? String(channel).trim().toLowerCase()
+  if (channel === null || channel === undefined || channel === '') return 'other'
+  const raw = String(channel).trim().toLowerCase()
+  const mapped = channelMap[raw] ?? raw
+  return LEAD_CHANNELS.includes(mapped) ? mapped : 'other'
+}
+
+function normalizeStage(stage) {
+  if (stage === null || stage === undefined || stage === '') return undefined
+  const s = String(stage).trim()
+  return LEAD_STAGES.includes(s) ? s : 'New'
+}
+
+function normalizePriority(priority) {
+  if (priority === null || priority === undefined || priority === '') return undefined
+  const p = String(priority).trim()
+  return LEAD_PRIORITIES.includes(p) ? p : 'Medium'
+}
+
+function omitNullishStrings(data, keys) {
+  for (const k of keys) {
+    if (k in data && (data[k] === null || data[k] === undefined)) delete data[k]
+  }
 }
 
 function sanitizeLeadPayload(payload) {
-  const data = { ...payload }
-  if ('channel' in data) data.channel = normalizeChannel(data.channel)
+  const raw = payload && typeof payload === 'object' ? payload : {}
+  const data = { ...raw }
+
+  const stringKeys = ['name', 'company', 'email', 'phone', 'assignedTo', 'meetingLocation', 'notes', 'location']
+  omitNullishStrings(data, stringKeys)
+  for (const k of stringKeys) {
+    if (k in data && typeof data[k] !== 'string') data[k] = String(data[k])
+  }
+
+  if ('channel' in raw) {
+    data.channel = normalizeChannel(data.channel)
+  }
+
+  if ('stage' in data) {
+    const s = normalizeStage(data.stage)
+    if (s === undefined) delete data.stage
+    else data.stage = s
+  }
+  if ('priority' in data) {
+    const p = normalizePriority(data.priority)
+    if (p === undefined) delete data.priority
+    else data.priority = p
+  }
+
+  if ('value' in data) {
+    const v = Number(data.value)
+    data.value = Number.isFinite(v) ? v : 0
+  }
+
   if ('assignedTo' in data) data.assignedTo = data.assignedTo ?? ''
   if ('meetingAt' in data) data.meetingAt = data.meetingAt ? new Date(data.meetingAt) : null
   if ('meetingLocation' in data) data.meetingLocation = data.meetingLocation ?? ''
@@ -102,32 +149,35 @@ router.post('/:id/comments', async (req, res) => {
   }
 })
 
-// INGEST lead (used by Make automation)
+// INGEST lead (used by Make automation) — same schema as POST /; all fields optional
 router.post('/ingest/lead', async (req, res) => {
   try {
-    const { name, email, phone, service, message } = req.body
+    const body = req.body && typeof req.body === 'object' ? { ...req.body } : {}
+    const { service, message, product_interest, ...rest } = body
+    const extraNotes = [
+      service != null && String(service).trim() ? `Service: ${String(service).trim()}` : '',
+      product_interest != null && String(product_interest).trim()
+        ? `Product: ${String(product_interest).trim()}`
+        : '',
+      message != null && String(message).trim() ? String(message).trim() : '',
+    ].filter(Boolean).join('\n\n')
+    const notesMerged = [rest.notes, extraNotes].filter(Boolean).join('\n\n').trim()
 
-    const lead = new Lead({
-      name,
-      email,
-      phone,
-      company: "Individual",
-      channel: "website",
-      assignedTo: "",
-      meetingAt: null,
-      meetingLocation: "",
-      service,
-      message,
-      createdAt: new Date()
-    })
+    const lead = new Lead(
+      sanitizeLeadPayload({
+        ...rest,
+        ...(notesMerged ? { notes: notesMerged } : {}),
+        company: rest.company != null && String(rest.company).trim() ? rest.company : 'Individual',
+        channel: rest.channel != null && String(rest.channel).trim() ? rest.channel : 'website',
+      })
+    )
 
     await lead.save()
 
     res.status(201).json({
       success: true,
-      lead
+      lead,
     })
-
   } catch (err) {
     res.status(400).json({ error: err.message })
   }
